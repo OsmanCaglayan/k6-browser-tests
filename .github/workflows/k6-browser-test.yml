@@ -1,4 +1,4 @@
-name: Run k6 Browser Test (with Chromium built-in)
+name: Run k6 Browser Test with Chromium
 
 on:
   push:
@@ -11,22 +11,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 🧩 Stap 1: Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 🧩 Stap 2: Download Chrome seccomp-profiel (sandbox fix)
       - name: Download Chrome seccomp profile
         run: |
           curl -o chrome.json https://raw.githubusercontent.com/jfrazelle/dotfiles/master/etc/docker/seccomp/chrome.json
 
+      # 🧩 Stap 3: Run k6 browser test in Docker (met root user)
       - name: Run k6 browser test using official image
         run: |
           docker run --rm \
+            --user root \
             --cap-add=SYS_ADMIN \
             --security-opt seccomp=$(pwd)/chrome.json \
             -v "${{ github.workspace }}":/scripts \
             -w /scripts \
             grafana/k6:0.57.0-with-browser run --compatibility-mode=base k6-test.js
 
+      # 🧩 Stap 4: Upload screenshot als artifact
       - name: Upload screenshot artifact
         uses: actions/upload-artifact@v4
         with:
