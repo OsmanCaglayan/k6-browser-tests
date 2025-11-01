@@ -9,10 +9,6 @@ export const options = {
       options: {
         browser: {
           type: 'chromium',
-          connect: {
-            // Verbind met de Browserless container
-            wsEndpoint: 'ws://localhost:3000/devtools/browser?token=test123',
-          },
         },
       },
     },
@@ -33,11 +29,12 @@ export default async function () {
     await page.waitForLoadState('networkidle');
     const visible = await page.locator('.inventory_list').isVisible();
 
-    check(visible, { 'Login succesvol en dashboard zichtbaar': (v) => v === true });
+    check(visible, {
+      'Login succesvol en dashboard zichtbaar': (v) => v === true,
+    });
 
     await page.screenshot({ path: 'saucedemo-dashboard.png' });
     console.log('Titel:', await page.title());
-    console.log('URL na login:', page.url());
   } finally {
     await page.close();
   }

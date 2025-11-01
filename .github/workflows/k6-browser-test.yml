@@ -1,4 +1,4 @@
-name: Run k6 Browser Test (with Browserless)
+name: Run k6 Browser Test (with Chromium built-in)
 
 on:
   push:
@@ -10,32 +10,22 @@ jobs:
   k6-test:
     runs-on: ubuntu-latest
 
-    services:
-      browserless:
-        image: ghcr.io/browserless/chromium
-        ports:
-          - 3000:3000
-        env:
-          TOKEN: test123
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install k6
+      - name: Download Chrome seccomp profile
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gpg
-          curl -s https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update
-          sudo apt-get install -y k6
+          curl -o chrome.json https://raw.githubusercontent.com/jfrazelle/dotfiles/master/etc/docker/seccomp/chrome.json
 
-      - name: Wait for Browserless service
-        run: sleep 5
-
-      - name: Run k6 test (connected to Browserless)
-        run: k6 run --compatibility-mode=base k6-test.js
+      - name: Run k6 browser test using official image
+        run: |
+          docker run --rm \
+            --cap-add=SYS_ADMIN \
+            --security-opt seccomp=$(pwd)/chrome.json \
+            -v "${{ github.workspace }}":/scripts \
+            -w /scripts \
+            grafana/k6:0.57.0-with-browser run --compatibility-mode=base k6-test.js
 
       - name: Upload screenshot artifact
         uses: actions/upload-artifact@v4
