@@ -33,7 +33,7 @@ export default async function () {
       'Login succesvol en dashboard zichtbaar': (v) => v === true,
     });
 
-    await page.screenshot({ path: 'saucedemo-dashboard.png' });
+    await page.screenshot({ path: '/scripts/saucedemo-dashboard.png', fullPage: true });
     console.log('Titel:', await page.title());
   } finally {
     await page.close();
