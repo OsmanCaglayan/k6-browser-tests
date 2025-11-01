@@ -6,7 +6,15 @@ export const options = {
     login_flow: {
       executor: 'shared-iterations',
       iterations: 1,
-      options: { browser: { type: 'chromium' } },
+      options: {
+        browser: {
+          type: 'chromium',
+          connect: {
+            // Verbind met de Browserless container
+            wsEndpoint: 'ws://localhost:3000/devtools/browser?token=test123',
+          },
+        },
+      },
     },
   },
   thresholds: {
@@ -24,7 +32,9 @@ export default async function () {
     await page.locator('#login-button').click();
     await page.waitForLoadState('networkidle');
     const visible = await page.locator('.inventory_list').isVisible();
+
     check(visible, { 'Login succesvol en dashboard zichtbaar': (v) => v === true });
+
     await page.screenshot({ path: 'saucedemo-dashboard.png' });
     console.log('Titel:', await page.title());
     console.log('URL na login:', page.url());
