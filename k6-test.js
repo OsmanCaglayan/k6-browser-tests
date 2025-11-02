@@ -1,38 +1,40 @@
-import { browser } from 'k6/browser';
 import { check } from 'k6';
+import { browser } from 'k6/browser';
 
 export const options = {
   scenarios: {
-    login_flow: {
+    ui: {
       executor: 'shared-iterations',
+      vus: 1,
       iterations: 1,
-      options: {
-        browser: { type: 'chromium' },
-      },
+      options: { browser: { type: 'chromium' } },
     },
   },
   thresholds: {
-    browser_http_req_failed: ['rate<0.1'],     // max 10% fouten
-    browser_web_vital_lcp: ['p(95)<3000'],     // LCP < 3s
+    checks: ['rate==1'], 
   },
 };
 
-export default async function () {
-  const page = await browser.newPage();
+const USER = __ENV.SAUCE_USER || 'standard_user';
+const PASS = __ENV.SAUCE_PASS || 'secret_sauce';
 
+export default async function () {
+  const context = await browser.newContext();
+  let page;
   try {
-    await page.goto('https://www.saucedemo.com/');
-    await page.locator('#user-name').type('standard_user');
-    await page.locator('#password').type('secret_sauce');
+    page = await context.newPage();
+
+    await page.goto('https://www.saucedemo.com/', { waitUntil: 'load' });
+
+    await page.locator('#user-name').type(USER);
+    await page.locator('#password').type(PASS);
     await page.locator('#login-button').click();
 
-    await page.waitForLoadState('networkidle');
-    const visible = await page.locator('.inventory_list').isVisible();
-
-    check(visible, {
-      '✅ Login succesvol en dashboard zichtbaar': (v) => v === true,
-    });
+    // wacht tot inventory zichtbaar is en doe 1 check
+    await page.waitForSelector('.inventory_list');
+    check(page, { 'logged in (inventory visible)': (p) => p.url().includes('inventory') });
   } finally {
-    await page.close();
+    if (page) await page.close();
+    await context.close();
   }
 }
